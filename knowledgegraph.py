@@ -1,18 +1,17 @@
-# KnowledgeGraph - Fact graph: nodes, relation edges and multi-hop paths
+# KnowledgeGraph - Fact graph: nodes, edges, degree and neighbor queries
 # Part of the Kapildhinwa2010-dev Toolkit.
 
-"""KnowledgeNet - facts, alias derivation and chain reasoning.
+"""KnowledgeGraph - graph view of facts: nodes, edges, degree, neighbors.
 
-Lineage: reserv.dean-part-2 (HELIX). Facts are stored as (subject, predicate,
-object) triples; aliases are derived transitively from equality facts; chain
-reasoning walks predicates to answer multi-hop queries.
+Lineage: reserv.dean-part-2 (HELIX). Treats the triple store as a
+directed labelled graph and adds GRAPH operations: node listing, edge
+listing, in+out degree, and (optionally predicate-filtered) neighbor
+queries. Semantic recall and causal analysis live in the sibling repos.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
-
-import numpy as np
 
 __all__ = ["Fact", "KnowledgeNet"]
 
@@ -44,7 +43,7 @@ class Fact:
 
 
 class KnowledgeNet:
-    """Zero-overhead fact base with alias and chain reasoning."""
+    """Directed labelled graph of facts with indexed queries."""
 
     def __init__(self) -> None:
         self._facts: set = set()
@@ -52,7 +51,7 @@ class KnowledgeNet:
         self._by_object: dict = defaultdict(list)
 
     def add(self, subject: str, predicate: str, obj: str) -> bool:
-        """Add a fact; returns False if it already exists."""
+        """Add an edge; returns False if it already exists."""
         fact = Fact(subject, predicate, obj)
         if fact in self._facts:
             return False
@@ -68,7 +67,7 @@ class KnowledgeNet:
         return len(self._facts)
 
     def query(self, subject=None, predicate=None, obj=None):
-        """Return facts matching the given pattern (None = wildcard)."""
+        """Return edges matching the given pattern (None = wildcard)."""
         results = self._facts
         if subject is not None:
             results = [f for f in results if f.subject == subject]
@@ -77,30 +76,6 @@ class KnowledgeNet:
         if obj is not None:
             results = [f for f in results if f.object == obj]
         return sorted(results, key=lambda f: f.as_tuple())
-
-    def derive_aliases(self) -> dict:
-        """Transitive closure of ``same_as`` equality facts."""
-        adjacency: dict = defaultdict(set)
-        for fact in self._facts:
-            if fact.predicate == "same_as":
-                adjacency[fact.subject].add(fact.object)
-                adjacency[fact.object].add(fact.subject)
-        aliases: dict = {}
-        for node in list(adjacency):
-            if node in aliases:
-                continue
-            component = set()
-            stack = [node]
-            while stack:
-                current = stack.pop()
-                if current in component:
-                    continue
-                component.add(current)
-                stack.extend(adjacency[current] - component)
-            canonical = min(component)
-            for member in component:
-                aliases[member] = canonical
-        return aliases
 
     def chain(self, start: str, predicate: str, max_hops: int = 4) -> list:
         """Multi-hop walk following ``predicate`` from ``start``."""
@@ -120,14 +95,25 @@ class KnowledgeNet:
             current = nxt[0]
         return hops
 
-    def interference(self, query: str, top_k: int = 3) -> list:
-        """Rank facts related to ``query`` by co-occurrence interference."""
-        if top_k < 1:
-            raise ValueError("top_k must be >= 1")
-        scores: dict = {}
-        for fact in self._facts:
-            if query in (fact.subject, fact.object):
-                related = self.query(subject=fact.object) + self.query(obj=fact.subject)
-                scores[fact] = len(related)
-        ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0].as_tuple()))
-        return [fact for fact, _ in ranked[:top_k]]
+    def nodes(self) -> list:
+        """Sorted list of distinct nodes (subjects and objects)."""
+        return sorted({f.subject for f in self._facts} | {f.object for f in self._facts})
+
+    def edges(self) -> list:
+        """All edges as sorted (subject, predicate, object) tuples."""
+        return [f.as_tuple() for f in self.facts()]
+
+    def degree(self, node: str) -> int:
+        """Number of edges touching ``node`` (in + out)."""
+        return len(self._by_subject.get(node, [])) + len(self._by_object.get(node, []))
+
+    def neighbors(self, node: str, predicate=None) -> list:
+        """Sorted nodes adjacent to ``node``, optionally filtered by predicate."""
+        nbrs: set = set()
+        for f in self._by_subject.get(node, []):
+            if predicate is None or f.predicate == predicate:
+                nbrs.add(f.object)
+        for f in self._by_object.get(node, []):
+            if predicate is None or f.predicate == predicate:
+                nbrs.add(f.subject)
+        return sorted(nbrs)

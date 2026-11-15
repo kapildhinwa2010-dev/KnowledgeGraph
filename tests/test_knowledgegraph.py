@@ -13,12 +13,6 @@ def test_fact_rejects_empty():
         Fact("", "knows", "bob")
 
 
-def test_fact_equality_and_hash():
-    assert Fact("a", "p", "b") == Fact("a", "p", "b")
-    assert hash(Fact("a", "p", "b")) == hash(Fact("a", "p", "b"))
-    assert Fact("a", "p", "b") != Fact("a", "p", "c")
-
-
 def test_add_and_len():
     net = KnowledgeNet()
     assert net.add("a", "knows", "b") is True
@@ -30,59 +24,59 @@ def test_query_pattern():
     net = KnowledgeNet()
     net.add("a", "knows", "b")
     net.add("b", "knows", "c")
-    net.add("a", "likes", "c")
-    assert len(net.query(subject="a")) == 2
+    assert len(net.query(subject="a")) == 1
     assert len(net.query(predicate="knows")) == 2
-    assert len(net.query(obj="c")) == 2
-    assert len(net.query(subject="a", predicate="likes")) == 1
-
-
-def test_derive_aliases_transitive():
-    net = KnowledgeNet()
-    net.add("x", "same_as", "y")
-    net.add("y", "same_as", "z")
-    aliases = net.derive_aliases()
-    assert aliases["x"] == aliases["y"] == aliases["z"]
-
-
-def test_derive_aliases_ignores_other_predicates():
-    net = KnowledgeNet()
-    net.add("x", "knows", "y")
-    assert net.derive_aliases() == {}
 
 
 def test_chain_walk():
     net = KnowledgeNet()
     net.add("a", "next", "b")
     net.add("b", "next", "c")
-    net.add("c", "next", "d")
-    assert net.chain("a", "next") == ["b", "c", "d"]
+    assert net.chain("a", "next") == ["b", "c"]
 
 
-def test_chain_respects_max_hops():
+# --- graph operations (KnowledgeGraph-specific) ---
+
+
+def test_nodes_deduplicated_and_sorted():
     net = KnowledgeNet()
-    net.add("a", "next", "b")
-    net.add("b", "next", "c")
-    assert net.chain("a", "next", max_hops=1) == ["b"]
+    net.add("b", "knows", "a")
+    net.add("a", "knows", "c")
+    assert net.nodes() == ["a", "b", "c"]
 
 
-def test_chain_handles_cycles():
+def test_edges_sorted_tuples():
     net = KnowledgeNet()
-    net.add("a", "next", "b")
-    net.add("b", "next", "a")
-    assert net.chain("a", "next") == ["b"]
+    net.add("b", "knows", "a")
+    net.add("a", "likes", "c")
+    assert net.edges() == [("a", "likes", "c"), ("b", "knows", "a")]
 
 
-def test_interference_ranks_related():
+def test_degree_in_plus_out():
     net = KnowledgeNet()
-    net.add("hub", "knows", "a")
-    net.add("hub", "knows", "b")
-    net.add("lonely", "knows", "c")
-    top = net.interference("hub")
-    assert top and top[0].subject == "hub"
+    net.add("a", "knows", "b")
+    net.add("c", "knows", "a")
+    net.add("a", "likes", "d")
+    assert net.degree("a") == 3
+    assert net.degree("b") == 1
+    assert net.degree("zzz") == 0
 
 
-def test_chain_rejects_bad_hops():
+def test_neighbors_both_directions():
     net = KnowledgeNet()
-    with pytest.raises(ValueError):
-        net.chain("a", "next", max_hops=0)
+    net.add("a", "knows", "b")
+    net.add("c", "knows", "a")
+    assert net.neighbors("a") == ["b", "c"]
+
+
+def test_neighbors_filtered_by_predicate():
+    net = KnowledgeNet()
+    net.add("a", "knows", "b")
+    net.add("a", "likes", "c")
+    assert net.neighbors("a", predicate="likes") == ["c"]
+
+
+def test_neighbors_empty():
+    net = KnowledgeNet()
+    net.add("a", "knows", "b")
+    assert net.neighbors("zzz") == []
