@@ -1,43 +1,54 @@
 # KnowledgeGraph
 
-Facts, alias derivation and chain reasoning.
+[![CI](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/ci.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/ci.yml)
+[![CI](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/codeql.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/codeql.yml)
+
+Graph view of facts: nodes, edges, in+out degree and neighbor queries.
 
 **Part of the [Kapildhinwa2010-dev Toolkit](https://github.com/kapildhinwa2010-dev/Kapildhinwa2010-dev).**
 
-![CI](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/ci.yml/badge.svg)
-![CodeQL](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/codeql.yml/badge.svg)
-![Python](https://img.shields.io/badge/python-3.9%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+## What it does
 
-## ✨ Features
+KnowledgeGraph treats the triple store as a directed labelled graph:
+node listing, edge listing, in+out degree, and optionally
+predicate-filtered neighbor queries. Semantic recall lives in
+SemanticMemory; causal analysis in CausalMemory; storage extras in
+FactBase.
 
-- (subject, predicate, object) fact triples with dedup
-- Transitive `same_as` alias closure
-- Multi-hop chain walks and interference ranking
-
-## 📦 Install
+## Install
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 🚀 Quick start
+## Quick start
 
 ```python
 from knowledgegraph import KnowledgeNet
 
 net = KnowledgeNet()
-net.add('a', 'next', 'b')
-net.add('b', 'next', 'c')
-print(net.chain('a', 'next'))  # ['b', 'c']
+net.add("a", "next", "b")
+net.add("b", "next", "c")
+print(net.neighbors("b"))   # ["a", "c"]
+print(net.degree("b"))      # 2
 ```
 
-## 🧪 Tests
+## API
 
-```bash
-pytest tests/ -v
-```
+- add / query / facts / chain - shared triple store
+- nodes() - sorted distinct subjects and objects
+- edges() - all (subject, predicate, object) tuples
+- degree(node) - in + out edge count
+- neighbors(node, predicate=None) - adjacent nodes
 
-## 📄 License
+## Honest results and limitations
 
-MIT — see [LICENSE](LICENSE).
+- No graph algorithms beyond degree/neighbors/walk: no centrality,
+  shortest path, or community detection (see ChainReasoner for
+  reachability and paths).
+- Edges are unweighted; neighbors() does not show direction.
+- In-memory only; no persistence.
+
+## License
+
+MIT - see [LICENSE](LICENSE).
