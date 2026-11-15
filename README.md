@@ -1,7 +1,8 @@
 # KnowledgeGraph
 
 [![CI](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/ci.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/ci.yml)
-[![CI](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/codeql.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/codeql.yml)
+[![CodeQL](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/codeql.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/codeql.yml)
+
 
 Graph view of facts: nodes, edges, in+out degree and neighbor queries.
 
