@@ -1,28 +1,28 @@
 # KnowledgeGraph
 
-[![CI](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/ci.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/codeql.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/KnowledgeGraph/actions/workflows/codeql.yml)
+KnowledgeGraph is a small Python library for storing string-valued facts as directed, labelled `(subject, predicate, object)` triples and querying them as a graph. Version `0.1.0` provides an in-memory implementation; it is an early-stage, limited-scope utility rather than a general graph database.
 
+## Features
 
-Graph view of facts: nodes, edges, in+out degree and neighbor queries.
+- `Fact(subject, predicate, object)` validates that all three values are non-empty strings and can be represented as a tuple.
+- `KnowledgeNet.add(subject, predicate, object)` adds a fact and returns `False` for an exact duplicate; `len(net)` reports the number of distinct facts.
+- `query(subject=None, predicate=None, obj=None)` filters facts by any combination of fields. `facts()` returns sorted `Fact` objects.
+- `nodes()` returns sorted distinct subjects and objects; `edges()` returns sorted triple tuples.
+- `degree(node)` counts incident incoming and outgoing edges.
+- `neighbors(node, predicate=None)` returns sorted, distinct adjacent nodes, optionally filtered by predicate. It does not distinguish incoming from outgoing relationships.
+- `chain(start, predicate, max_hops=4)` follows a predicate for up to the hop limit and stops when no matching edge is found or the walk reaches a previously visited node.
 
-**Part of the [Kapildhinwa2010-dev Toolkit](https://github.com/kapildhinwa2010-dev/Kapildhinwa2010-dev).**
+## Installation
 
-## What it does
-
-KnowledgeGraph treats the triple store as a directed labelled graph:
-node listing, edge listing, in+out degree, and optionally
-predicate-filtered neighbor queries. Semantic recall lives in
-SemanticMemory; causal analysis in CausalMemory; storage extras in
-FactBase.
-
-## Install
+From the repository root, install the project with Python 3.9 or newer:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install .
 ```
 
-## Quick start
+The project metadata declares `numpy>=1.24` as a dependency. The repository does not provide a command-line interface.
+
+## Example
 
 ```python
 from knowledgegraph import KnowledgeNet
@@ -30,26 +30,32 @@ from knowledgegraph import KnowledgeNet
 net = KnowledgeNet()
 net.add("a", "next", "b")
 net.add("b", "next", "c")
-print(net.neighbors("b"))   # ["a", "c"]
-print(net.degree("b"))      # 2
+
+print(net.nodes())                    # ['a', 'b', 'c']
+print(net.edges())                    # [('a', 'next', 'b'), ('b', 'next', 'c')]
+print(net.neighbors("b"))             # ['a', 'c']
+print(net.degree("b"))                # 2
+print(net.chain("a", "next"))         # ['b', 'c']
 ```
 
-## API
+## Tests and checks
 
-- add / query / facts / chain - shared triple store
-- nodes() - sorted distinct subjects and objects
-- edges() - all (subject, predicate, object) tuples
-- degree(node) - in + out edge count
-- neighbors(node, predicate=None) - adjacent nodes
+On the cloned repository commit `143636747ddca51d0230318b43581be4bfad77fc`, the test suite was run locally with Python 3.12.3: **11 tests passed**. `compileall` completed and the import smoke check instantiated `KnowledgeNet` successfully. These are local checks, not a claim about a hosted GitHub Actions run. The configured CI workflow runs pytest, compilation, and an import smoke check on Python 3.10, 3.11, and 3.12.
 
-## Honest results and limitations
+To run the tests from the repository root:
 
-- No graph algorithms beyond degree/neighbors/walk: no centrality,
-  shortest path, or community detection (see ChainReasoner for
-  reachability and paths).
-- Edges are unweighted; neighbors() does not show direction.
-- In-memory only; no persistence.
+```bash
+python -m pip install -r requirements.txt
+python -m pytest -q
+```
+
+## Limitations
+
+- All facts and indexes are held in memory; there is no persistence or serialization layer.
+- `chain` follows only the first matching outgoing edge at each step; it is a single walk, not branching path search.
+- `neighbors` treats adjacency in either direction alike. There are no shortest-path, centrality, traversal-planning, or community-detection algorithms in this implementation.
+- No performance benchmarks or production-readiness evidence are included in the repository.
 
 ## License
 
-MIT - see [LICENSE](LICENSE).
+The repository includes an MIT License. See [LICENSE](LICENSE) for its full terms (copyright © 2026 Kapildhinwa2010-dev).
